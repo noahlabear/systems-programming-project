@@ -18,30 +18,90 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   m->out = output;
   
   
-  // TODO: implement me
-
   // Open and read .ijvm binary
   FILE *f = fopen(binary_path, "rb");
   if (!f) {
-      perror("fopen");
-      free(m);
-      return NULL;
+    perror("fopen");
+    free(m);
+    return NULL;
   }
 
   uint8_t buf[4];
   // read first 4 bytes for magic number
   if (fread(buf, 1, 4, f) != 4) {
-        fprintf(stderr, "Error reading magic number from %s\n", binary_path);
-        free(m);
-        return NULL;
+    fprintf(stderr, "Error reading magic number from %s\n", binary_path);
+    goto fail;
   }
 
+  // Validate magic number
   uint32_t magic = read_uint32(buf);
-  fprintf(m->out, "Magic number: 0x%08x\n", magic);
+  if (magic != 0x1DEADFAD) {
+    fprintf(stderr, "%s: bad magic number: 0x%08x (expected 0x1DEADFAD)\n",
+            binary_path, magic);
+    goto fail;
+  }
+
+  // Skip 4 byte origin of constant pool
+  if (fread(buf, 1, 4, f) != 4) {
+    fprintf(stderr, "Error skipping const-pool origin in %s\n", binary_path);
+    goto fail;
+  }
+
+  // Read const-pool size
+  if (fread(buf, 1, 4, f) != 4) {
+    fprintf(stderr, "Error reading const-pool size in %s\n", binary_path);
+    goto fail;
+  }
+
+  // convert from big-endian file bytes to ensure endianness is correct
+  m->const_pool_size = read_uint32(buf);
+
+  // Allocate memory for the constant pool and read it
+  m->const_pool = malloc(m->const_pool_size);
+  if (!m->const_pool) {
+    perror("malloc const_pool");
+    goto fail;
+  }
+  if (fread(m->const_pool, 1, m->const_pool_size, f) != m->const_pool_size) {
+    fprintf(stderr, "Error reading const-pool data in %s\n", binary_path);
+    goto fail;
+  }
+
+  // Skip the 4 byte origin of text block
+  if (fread(buf, 1, 4, f) != 4) {
+    fprintf(stderr, "Error skipping text origin in %s\n", binary_path);
+    goto fail;
+  }
+
+  // Read the 4 byte text size
+  if (fread(buf, 1, 4, f) != 4) {
+    fprintf(stderr, "Error reading text size in %s\n", binary_path);
+    goto fail;
+  }
+  m->text_size = read_uint32(buf);
+
+  // Allocate and read the text
+  m->text = malloc(m->text_size);
+  if (!m->text) {
+    perror("malloc text");
+    goto fail;
+  }
+  if (fread(m->text, 1, m->text_size, f) != m->text_size) {
+    fprintf(stderr, "Error reading text data in %s\n", binary_path);
+    goto fail;
+  }
 
   fclose(f);
 
   return m;
+
+fail:
+  // cleanup on failure
+  fclose(f);
+  free(m->const_pool);
+  free(m->text);
+  free(m);
+  return NULL;
 }
 
 void destroy_ijvm(ijvm* m) 
@@ -53,14 +113,12 @@ void destroy_ijvm(ijvm* m)
 
 byte *get_text(ijvm* m) 
 {
-  // TODO: implement me
-  return NULL;
+  return m->text;
 }
 
 unsigned int get_text_size(ijvm* m) 
 {
-  // TODO: implement me
-  return 0;
+  return m->text_size;
 }
 
 word get_constant(ijvm* m,int i) 

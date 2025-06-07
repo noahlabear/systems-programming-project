@@ -17,10 +17,10 @@ typedef struct IJVM {
 
   // your variables go here
 
-  // unsigned int const_pool_size;
-  // uint8_t *const_pool;
-  // unsigned int text_size;
-  // byte *text;
+  unsigned int const_pool_size;
+  uint8_t *const_pool;
+  unsigned int text_size;
+  byte *text;
 
 } ijvm;
 
