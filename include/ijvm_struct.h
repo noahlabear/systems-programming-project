@@ -17,6 +17,12 @@ typedef struct IJVM {
 
   // your variables go here
 
+  uint8_t *const_pool;
+  unsigned int const_pool_size;
+  byte *text;
+  unsigned int text_size;
+  unsigned int pc;
+
 } ijvm;
 
 #endif 
