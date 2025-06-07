@@ -16,8 +16,15 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   // struct and do not assume these are set to zero.
   m->in = input;
   m->out = output;
-  
-  
+
+  if (!m) return NULL;
+
+  // Initialise all variables so cleanup is safe
+  m->const_pool = NULL;
+  m->const_pool_size = 0;
+  m->text = NULL;
+  m->text_size = 0;
+
   // Open and read .ijvm binary
   FILE *f = fopen(binary_path, "rb");
   if (!f) {
@@ -106,8 +113,6 @@ fail:
 
 void destroy_ijvm(ijvm* m) 
 {
-  // TODO: implement me
-
   free(m); // free memory for struct
 }
 
@@ -123,8 +128,9 @@ unsigned int get_text_size(ijvm* m)
 
 word get_constant(ijvm* m,int i) 
 {
-  // TODO: implement me
-  return 0;
+  unsigned int offset = (unsigned int)i * 4;
+  // Handle endianness and return value
+  return (word)read_uint32(m->const_pool + offset);
 }
 
 unsigned int get_program_counter(ijvm* m) 

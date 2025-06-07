@@ -107,12 +107,12 @@ int main(void)
 {
     fprintf(stderr, "*** test1: BINARIES ..........\n");
     RUN_TEST(test_set_in_out)
-    fprintf(stderr, "*** test1: PROGRAMS ..........\n");
     RUN_TEST(test_program_1);
     RUN_TEST(test_program_2);
     RUN_TEST(test_constants_1);
     RUN_TEST(test_constants_2);
     RUN_TEST(test_magicnum_swap);
+    fprintf(stderr, "*** test1: PROGRAMS ..........\n");
     RUN_TEST(test_magicnum);
     return END_TEST();
 }
