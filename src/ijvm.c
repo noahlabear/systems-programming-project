@@ -17,7 +17,29 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   m->in = input;
   m->out = output;
   
+  
   // TODO: implement me
+
+  // Open and read .ijvm binary
+  FILE *f = fopen(binary_path, "rb");
+  if (!f) {
+      perror("fopen");
+      free(m);
+      return NULL;
+  }
+
+  uint8_t buf[4];
+  // read first 4 bytes for magic number
+  if (fread(buf, 1, 4, f) != 4) {
+        fprintf(stderr, "Error reading magic number from %s\n", binary_path);
+        free(m);
+        return NULL;
+  }
+
+  uint32_t magic = read_uint32(buf);
+  fprintf(m->out, "Magic number: 0x%08x\n", magic);
+
+  fclose(f);
 
   return m;
 }
