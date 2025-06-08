@@ -16,6 +16,7 @@ typedef struct IJVM {
     FILE *out;  // use for example fprintf(ijvm->out, "%c", value); to print value to out
 
   // your variables go here
+  IJVMstack stack;
 
   unsigned int const_pool_size;
   uint8_t *const_pool;
@@ -23,5 +24,10 @@ typedef struct IJVM {
   byte *text;
 
 } ijvm;
+
+typedef struct {
+  word data[1024];
+  unsigned int sp;
+} IJVMstack;
 
 #endif 
