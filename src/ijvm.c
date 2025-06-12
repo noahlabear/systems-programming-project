@@ -218,17 +218,17 @@ void step(ijvm* m)
 
     case OP_IADD: {
       // Pop two numbers, add them, push result
-      word second_val = stack_pop(&m->stack);
-      word first_val = stack_pop(&m->stack);
-      stack_push(&m->stack, first_val + second_val);
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      stack_push(&m->stack, val1 + val2);
       break;
     }
 
     case OP_ISUB: {
       // Subtract the top two values
-      word second_val = stack_pop(&m->stack);
-      word first_val = stack_pop(&m->stack);
-      stack_push(&m->stack, first_val - second_val);
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      stack_push(&m->stack, val1 - val2);
       break;
     }
 
@@ -241,17 +241,17 @@ void step(ijvm* m)
 
     case OP_IAND: {
       // AND of the top two values
-      word second_val = stack_pop(&m->stack);
-      word first_val = stack_pop(&m->stack);
-      stack_push(&m->stack, first_val & second_val);
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      stack_push(&m->stack, val1 & val2);
       break;
     }
 
     case OP_IOR: {
       // OR of the top two values
-      word second_val = stack_pop(&m->stack);
-      word first_val = stack_pop(&m->stack);
-      stack_push(&m->stack, first_val | second_val);
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      stack_push(&m->stack, val1 | val2);
       break;
     }
 
@@ -266,10 +266,10 @@ void step(ijvm* m)
 
     case OP_SWAP: {
       // Swap top two values
-      word second_val = stack_pop(&m->stack);
-      word first_val = stack_pop(&m->stack);
-      stack_push(&m->stack, second_val);
-      stack_push(&m->stack, first_val);
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      stack_push(&m->stack, val2);
+      stack_push(&m->stack, val1);
       break;
     }
 
@@ -288,8 +288,54 @@ void step(ijvm* m)
 
     case OP_OUT: {
       // Pop and print as character
-      word v = stack_pop(&m->stack);
-      fprintf(m->out, "%c", (char)v);
+      word val = stack_pop(&m->stack);
+      fprintf(m->out, "%c", (char)val);
+      break;
+    }
+
+    case OP_GOTO: {
+      // Jump the specified number of bytes
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      m->pc = orig_pc + offset;
+      break;
+    }
+
+    case OP_IFEQ: {
+      // Pop value and branch if == 0
+      word val = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val == 0) {
+        m->pc = orig_pc + offset;
+      }
+      break;
+    }
+
+    case OP_IFLT: {
+      // Pop value and branch if < 0
+      word val = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val < 0) {
+        m->pc = orig_pc + offset;
+      }
+      break;
+    }
+
+    case OP_IF_ICMPEQ: {
+      // Pop two values and branch if equal
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val1 == val2) {
+        m->pc = orig_pc + offset;
+      }
       break;
     }
 
