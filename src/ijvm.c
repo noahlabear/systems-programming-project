@@ -6,6 +6,48 @@
 
 // see ijvm.h for descriptions of the below functions
 
+// Stack functions
+void stack_init(Stack *s, int capacity) {
+    s->data     = malloc(sizeof(word) * capacity);
+    if (!s->data) {
+        perror("malloc stack");
+        exit(1);
+    }
+    s->capacity = capacity;
+    s->top      = -1;
+}
+
+void stack_destroy(Stack *s) {
+    free(s->data);
+    s->data     = NULL;
+    s->capacity = 0;
+    s->top      = -1;
+}
+
+void stack_push(Stack *s, word v) {
+    if (s->top + 1 >= s->capacity) {
+        fprintf(stderr, "Stack overflow\n");
+        exit(1);
+    }
+    s->data[++s->top] = v;
+}
+
+word stack_pop(Stack *s) {
+    if (s->top < 0) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    return s->data[s->top--];
+}
+
+word stack_top(const Stack *s) {
+    if (s->top < 0) {
+        fprintf(stderr, "Stack is empty\n");
+        exit(1);
+    }
+    return s->data[s->top];
+}
+
 ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
 {
   // do not change these first three lines
@@ -24,6 +66,10 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   m->const_pool_size = 0;
   m->text = NULL;
   m->text_size = 0;
+
+  // Initialise stack and Program Counter
+  m->pc = 0;
+  stack_init(&m->stack, 1024);
 
   // Open and read .ijvm binary
   FILE *f = fopen(binary_path, "rb");
@@ -113,7 +159,8 @@ fail:
 
 void destroy_ijvm(ijvm* m) 
 {
-  free(m); // free memory for struct
+  stack_destroy(&m->stack);
+  free(m);
 }
 
 byte *get_text(ijvm* m) 
@@ -135,21 +182,17 @@ word get_constant(ijvm* m,int i)
 
 unsigned int get_program_counter(ijvm* m) 
 {
-  // TODO: implement me
-  return 0;
+  return m->pc;
 }
 
 word tos(ijvm* m) 
 {
-  // this operation should NOT pop (remove top element from stack)
-  // TODO: implement me
-  return -1;
+  return stack_top(&m->stack);
 }
 
 bool finished(ijvm* m) 
 {
-  // TODO: implement me
-  return false;
+  return m->pc >= m->text_size;
 }
 
 word get_local_variable(ijvm* m, int i) 
@@ -160,8 +203,106 @@ word get_local_variable(ijvm* m, int i)
 
 void step(ijvm* m) 
 {
-  // TODO: implement me
+  byte instruction = get_instruction(m);
+  m->pc++;
 
+  switch (instruction) {
+
+    case OP_BIPUSH: {
+      // Push next byte to stack
+      int8_t next_byte = (int8_t) m->text[m->pc];
+      m->pc++;
+      stack_push(&m->stack, (word)next_byte);
+      break;
+    }
+
+    case OP_IADD: {
+      // Pop two numbers, add them, push result
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val + second_val);
+      break;
+    }
+
+    case OP_ISUB: {
+      // Subtract the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val - second_val);
+      break;
+    }
+
+    case OP_DUP: {
+      // Duplicate the top value
+      word top_val = stack_top(&m->stack);
+      stack_push(&m->stack, top_val);
+      break;
+    }
+
+    case OP_IAND: {
+      // AND of the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val & second_val);
+      break;
+    }
+
+    case OP_IOR: {
+      // OR of the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val | second_val);
+      break;
+    }
+
+    case OP_NOP:
+      // Do nothing
+      break;
+
+    case OP_POP:
+      // Pop
+      stack_pop(&m->stack);
+      break;
+
+    case OP_SWAP: {
+      // Swap top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, second_val);
+      stack_push(&m->stack, first_val);
+      break;
+    }
+
+    case OP_ERR:
+      // Print error and halt
+      fprintf(m->out, "Error\n");
+      m->pc = m->text_size;
+      break;
+
+    case OP_IN: {
+      // Read a byte and push it
+      int c = fgetc(m->in);
+      stack_push(&m->stack, (word)(c == EOF ? 0 : c));
+      break;
+    }
+
+    case OP_OUT: {
+      // Pop and print as character
+      word v = stack_pop(&m->stack);
+      fprintf(m->out, "%c", (char)v);
+      break;
+    }
+
+    case OP_HALT:
+      // Increase pc to text size so finished() returns true
+      m->pc = m->text_size;
+      break;
+
+
+    default:
+        fprintf(stderr, "Unimplemented opcode 0x%02x at pc=%u\n", instruction, m->pc-1);
+        exit(1);
+  }
 }
 
 byte get_instruction(ijvm* m) 
