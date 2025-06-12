@@ -215,16 +215,94 @@ void step(ijvm* m)
       stack_push(&m->stack, (word)next_byte);
       break;
     }
+
+    case OP_IADD: {
+      // Pop two numbers, add them, push result
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val + second_val);
+      break;
+    }
+
+    case OP_ISUB: {
+      // Subtract the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val - second_val);
+      break;
+    }
+
+    case OP_DUP: {
+      // Duplicate the top value
+      word top_val = stack_top(&m->stack);
+      stack_push(&m->stack, top_val);
+      break;
+    }
+
+    case OP_IAND: {
+      // AND of the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val & second_val);
+      break;
+    }
+
+    case OP_IOR: {
+      // OR of the top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, first_val | second_val);
+      break;
+    }
+
+    case OP_NOP:
+      // Do nothing
+      break;
+
+    case OP_POP:
+      // Pop
+      stack_pop(&m->stack);
+      break;
+
+    case OP_SWAP: {
+      // Swap top two values
+      word second_val = stack_pop(&m->stack);
+      word first_val = stack_pop(&m->stack);
+      stack_push(&m->stack, second_val);
+      stack_push(&m->stack, first_val);
+      break;
+    }
+
+    case OP_ERR:
+      // Print error and halt
+      fprintf(m->out, "Error\n");
+      m->pc = m->text_size;
+      break;
+
+    case OP_IN: {
+      // Read a byte and push it
+      int c = fgetc(m->in);
+      stack_push(&m->stack, (word)(c == EOF ? 0 : c));
+      break;
+    }
+
+    case OP_OUT: {
+      // Pop and print as character
+      word v = stack_pop(&m->stack);
+      fprintf(m->out, "%c", (char)v);
+      break;
+    }
+
     case OP_HALT:
       // Increase pc to text size so finished() returns true
       m->pc = m->text_size;
       break;
 
+
     default:
         fprintf(stderr, "Unimplemented opcode 0x%02x at pc=%u\n", instruction, m->pc-1);
         exit(1);
   }
-
 }
 
 byte get_instruction(ijvm* m) 
