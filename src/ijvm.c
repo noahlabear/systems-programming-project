@@ -71,6 +71,9 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   m->pc = 0;
   stack_init(&m->stack, 1024);
 
+  // Initialise main local variable frame pointer
+  m->lv = 0;
+
   // Open and read .ijvm binary
   FILE *f = fopen(binary_path, "rb");
   if (!f) {
@@ -197,8 +200,8 @@ bool finished(ijvm* m)
 
 word get_local_variable(ijvm* m, int i) 
 {
-  // TODO: implement me
-  return 0;
+  // index into the current frame at lv + i
+  return m->stack.data[m->lv + i];
 }
 
 void step(ijvm* m) 
@@ -290,6 +293,61 @@ void step(ijvm* m)
       // Pop and print as character
       word v = stack_pop(&m->stack);
       fprintf(m->out, "%c", (char)v);
+      break;
+    }
+
+    case OP_GOTO: {
+      // Jump the specified number of bytes
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      m->pc = orig_pc + offset;
+      break;
+    }
+
+    case OP_IFEQ: {
+      // Pop value and branch if == 0
+      word val = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val == 0) {
+        m->pc = orig_pc + offset;
+      }
+      break;
+    }
+
+    case OP_IFLT: {
+      // Pop value and branch if < 0
+      word val = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val < 0) {
+        m->pc = orig_pc + offset;
+      }
+      break;
+    }
+
+    case OP_IF_ICMPEQ: {
+      // Pop two values and branch if equal
+      word val2 = stack_pop(&m->stack);
+      word val1 = stack_pop(&m->stack);
+      unsigned int orig_pc = m->pc - 1;
+      int16_t offset = read_int16(&m->text[m->pc]);
+      m->pc += 2;
+      if (val1 == val2) {
+        m->pc = orig_pc + offset;
+      }
+      break;
+    }
+
+    case OP_LDC_W: {
+      // Push the constant at index onto the stack
+      uint16_t idx = read_uint16(m->text + m->pc);
+      m->pc += 2;
+      word v = get_constant(m, idx);
+      stack_push(&m->stack, v);
       break;
     }
 

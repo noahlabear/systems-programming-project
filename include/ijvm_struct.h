@@ -33,6 +33,8 @@ typedef struct IJVM {
 
     Stack stack;
 
+    int lv;
+
 } ijvm;
 
 #endif 
