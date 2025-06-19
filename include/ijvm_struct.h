@@ -37,4 +37,9 @@ typedef struct IJVM {
 
 } ijvm;
 
+typedef struct {
+  word data[1024];
+  unsigned int sp;
+} IJVMstack;
+
 #endif 

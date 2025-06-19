@@ -1,1 +1,25 @@
-// Fill in JAS 2: GOTO below
+.main
+    IN
+    IN
+    DUP
+    IADD
+    BIPUSH 2
+    IADD
+
+loop:
+    SWAP
+    DUP
+    OUT
+    BIPUSH 2
+    IADD
+    SWAP
+    BIPUSH 2
+    ISUB
+    DUP
+    IFEQ end
+    GOTO loop
+
+end:
+    HALT
+
+.end-main

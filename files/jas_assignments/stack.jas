@@ -1,1 +1,34 @@
-// Fill in JAS 1: Stack below
+.main
+    IN
+    IN
+    DUP
+    DUP
+    DUP
+    DUP
+    IN
+    DUP
+    BIPUSH 3
+    IADD
+    OUT
+    IADD
+    DUP
+    OUT
+
+    ISUB
+    BIPUSH 0
+    SWAP
+    ISUB
+    SWAP
+    ISUB
+    DUP
+    OUT
+
+    IADD
+    IADD
+    IADD
+    BIPUSH 10
+    ISUB
+    OUT
+
+    HALT
+.end-main
