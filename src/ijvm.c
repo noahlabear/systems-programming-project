@@ -342,52 +342,6 @@ void step(ijvm* m)
       break;
     }
 
-    case OP_GOTO: {
-      // Jump the specified number of bytes
-      unsigned int orig_pc = m->pc - 1;
-      int16_t offset = read_int16(&m->text[m->pc]);
-      m->pc += 2;
-      m->pc = orig_pc + offset;
-      break;
-    }
-
-    case OP_IFEQ: {
-      // Pop value and branch if == 0
-      word val = stack_pop(&m->stack);
-      unsigned int orig_pc = m->pc - 1;
-      int16_t offset = read_int16(&m->text[m->pc]);
-      m->pc += 2;
-      if (val == 0) {
-        m->pc = orig_pc + offset;
-      }
-      break;
-    }
-
-    case OP_IFLT: {
-      // Pop value and branch if < 0
-      word val = stack_pop(&m->stack);
-      unsigned int orig_pc = m->pc - 1;
-      int16_t offset = read_int16(&m->text[m->pc]);
-      m->pc += 2;
-      if (val < 0) {
-        m->pc = orig_pc + offset;
-      }
-      break;
-    }
-
-    case OP_IF_ICMPEQ: {
-      // Pop two values and branch if equal
-      word val2 = stack_pop(&m->stack);
-      word val1 = stack_pop(&m->stack);
-      unsigned int orig_pc = m->pc - 1;
-      int16_t offset = read_int16(&m->text[m->pc]);
-      m->pc += 2;
-      if (val1 == val2) {
-        m->pc = orig_pc + offset;
-      }
-      break;
-    }
-
     case OP_LDC_W: {
       // Push the constant at index onto the stack
       uint16_t idx = read_uint16(m->text + m->pc);
