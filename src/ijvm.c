@@ -71,6 +71,11 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output)
   m->pc = 0;
   stack_init(&m->stack, 1024);
 
+  // Reserve 256 word slots at stack.data
+  for (int i = 0; i < 256; i++) {
+    stack_push(&m->stack, 0);
+  }
+
   // Initialise main local variable frame pointer
   m->lv = 0;
 
@@ -344,12 +349,67 @@ void step(ijvm* m)
 
     case OP_LDC_W: {
       // Push the constant at index onto the stack
-      uint16_t idx = read_uint16(m->text + m->pc);
+      uint16_t index = read_uint16(m->text + m->pc);
       m->pc += 2;
-      word v = get_constant(m, idx);
+      word v = get_constant(m, index);
       stack_push(&m->stack, v);
       break;
     }
+
+    case OP_ISTORE: {
+      // Take a single byte index to store a value in the local variable
+      uint8_t index = m->text[m->pc++];
+      word value = stack_pop(&m->stack);
+      m->stack.data[m->lv + index] = value;
+      break;
+    }
+
+    case OP_ILOAD: {
+      // Take a single byte index to load a local variable
+      uint8_t index = m->text[m->pc++];
+      word value = get_local_variable(m, index);
+      stack_push(&m->stack, value);
+      break;
+    }
+
+    case OP_IINC: {
+      // first byte: local variable index. second byte: signed increment
+      uint8_t index = m->text[m->pc++];
+      int8_t increment = (int8_t)m->text[m->pc++];
+      m->stack.data[m->lv + index] += increment;
+      break;
+    }
+
+    case OP_WIDE: {
+      // Consume next opcode and handle it with a 16 bit index
+      byte wide_op = m->text[m->pc++];
+      switch (wide_op) {
+        case OP_ILOAD: {
+          uint16_t index = read_uint16(m->text + m->pc);
+          m->pc += 2;
+          stack_push(&m->stack, get_local_variable(m, index));
+          break;
+        }
+        case OP_ISTORE: {
+          uint16_t index = read_uint16(m->text + m->pc);
+          m->pc += 2;
+          word v = stack_pop(&m->stack);
+          m->stack.data[m->lv + index] = v;
+          break;
+        }
+        case OP_IINC: {
+          uint16_t index = read_uint16(m->text + m->pc);
+          m->pc += 2;
+          int8_t delta = (int8_t)m->text[m->pc++];
+          m->stack.data[m->lv + index] += delta;
+          break;
+        }
+        default:
+          fprintf(stderr, "Invalid WIDE opcode 0x%02x at pc=%u\n", wide_op, m->pc-1);
+          exit(1);
+      }
+      break;
+  }
 
     case OP_HALT:
       // Increase pc to text size so finished() returns true
